@@ -11,5 +11,6 @@ logging:
     
 eureka:
   client:
-    service-url:
-     defaultzone: http://${EUREKA_SERVER}:8080/eureka/    
+    serviceUrl:
+      defaultZone: http://${EUREKA_SERVER}:8080/eureka/      
+   
