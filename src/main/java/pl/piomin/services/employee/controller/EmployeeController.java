@@ -1,52 +1,60 @@
-package pl.piomin.services.employee.controller;
-
-import java.util.List;
+package pl.piomin.services.employee;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
+import springfox.documentation.builders.RequestHandlerSelectors;
+import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger.web.*;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-import pl.piomin.services.employee.model.Employee;
-import pl.piomin.services.employee.repository.EmployeeRepository;
+import javax.annotation.PostConstruct;
+import java.util.Map;
 
-@RestController
-@RequestMapping("/employee")
-public class EmployeeController {
+@SpringBootApplication
+@EnableMongoRepositories
+@EnableSwagger2
+@EnableEurekaClient
+public class EmployeeApplication {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(EmployeeController.class);
+	private static final Logger LOG = LoggerFactory.getLogger(EmployeeApplication.class);
+
+	@Value("${VERSION}")
+	String version;
 	
-	@Autowired
-	EmployeeRepository repository;
-	
-	@PostMapping("/")
-	public Employee add(@RequestBody Employee employee) {
-		LOGGER.info("Employee add: {}", employee);
-		return repository.save(employee);
+	public static void main(String[] args) {
+		SpringApplication.run(EmployeeApplication.class, args);
 	}
-	
-	@GetMapping("/{id}")
-	public Employee findById(@PathVariable("id") String id) {
-		LOGGER.info("Employee find: id={}", id);
-		return repository.findById(id).get();
+
+	@PostConstruct
+	public void envs() {
+		Map<String, String> env = System.getenv();
+		for (String envName : env.keySet()) {
+			LOG.info("{}={}", envName, env.get(envName));
+		}
 	}
-	
-	@GetMapping("/")
-	public Iterable<Employee> findAll() {
-		LOGGER.info("Employee find");
-		return repository.findAll();
+
+	@Bean
+	public Docket swaggerApi() {
+		return new Docket(DocumentationType.SWAGGER_2)
+				.select()
+					.apis(RequestHandlerSelectors.basePackage("pl.piomin.services.employee.controller"))
+					.paths(PathSelectors.any())
+				.build()
+				.apiInfo(new ApiInfoBuilder().version(version).title("Employee API").description("Documentation Employee API v" + version).build());
 	}
-	
-	@GetMapping("/department/{departmentId}")
-	public List<Employee> findByDepartment(@PathVariable("departmentId") String departmentId) {
-		LOGGER.info("Employee find: departmentId={}", departmentId);
-		return repository.findByDepartmentId(departmentId);
+
+	@Bean
+	UiConfiguration uiConfig() {
+		return new UiConfiguration(Boolean.TRUE, Boolean.FALSE, 1, 1, ModelRendering.MODEL, Boolean.FALSE, DocExpansion.LIST, Boolean.FALSE, null, OperationsSorter.ALPHA, Boolean.FALSE, TagsSorter.ALPHA, UiConfiguration.Constants.DEFAULT_SUBMIT_METHODS, null);
 	}
-	
-	@GetMapping("/organization/{organizationId}")
-	public List<Employee> findByOrganization(@PathVariable("organizationId") String organizationId) {
-		LOGGER.info("Employee find: organizationId={}", organizationId);
-		return repository.findByOrganizationId(organizationId);
-	}
-	
+
 }
